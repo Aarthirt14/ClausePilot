@@ -1,51 +1,84 @@
-# Contract Risk Classification System
 
-A machine learning-powered tool to identify and categorize risks in legal contracts using the CUAD (Contract Understanding Atticus Dataset).
+# ClausePilot - Contract Risk Classification System
 
-## 🚀 Features
-- **Data Pipeline**: Automated fetching and cleaning of the CUAD dataset.
-- **Risk Mapping**: Transformation of 41 granular legal categories into 5 high-level risk labels:
-  - `Termination Risk`
-  - `Liability Risk`
-  - `Payment Risk`
-  - `Data Privacy Risk`
-  - `Neutral`
-- **Machine Learning**: TF-IDF + Logistic Regression baseline achieving **~87% accuracy**.
-- **PDF Analyzer**: Automated extraction and risk flagging from contract PDFs using `pdfplumber`.
+Clause-level contract risk classification engine using BERT with explainability and a production-ready Flask backend. The system segments clauses from PDFs, classifies risk labels, computes confidence and severity, and exposes evaluation and error analysis tooling.
 
-## 📁 Directory Structure
-- `data/`: Processed datasets and raw CSVs.
-- `models/`: Trained model weights and vectorizers.
-- `src/`: Source code for loading, training, and inference.
-- `notebooks/`: Exploratory Data Analysis (EDA).
+## Features
+- Clause segmentation with normalization and deduplication
+- BERT-based classification (5 risk labels)
+- Risk scoring using impact x likelihood formula
+- SHAP explainability with positive/negative contributors
+- Evaluation pipeline with metrics, confusion matrix, class distribution, calibration plots
+- Error analysis CSV output and API endpoints
+- Baseline TF-IDF + Logistic Regression comparison
+- Flask dashboard with uploads, results, and evaluation pages
 
-## 🛠️ Setup & Usage
+## Labels
+- Termination Risk
+- Liability Risk
+- Payment Risk
+- Data Privacy Risk
+- Neutral
 
-### 1. Environment Setup
+## Project Structure
+- data/: datasets and sample contracts
+- models/: trained model artifacts
+- evaluation/: evaluation outputs and plots
+- src/: backend, modeling, evaluation, calibration, scoring
+- templates/: Flask templates
+- static/: CSS
+
+## Setup
 ```powershell
 python -m venv venv
-.\venv\Scripts\activate
+\.\venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 ```
 
-### 2. Data Preparation
+## Data Preparation
 ```powershell
 python src/load_data.py
 python src/map_risk_labels.py
 ```
 
-### 3. Model Training
+## Training
+Baseline:
 ```powershell
 python src/train_baseline.py
 ```
 
-### 4. Run Analysis
-To identify risks in a specific contract PDF:
+BERT / Legal-BERT:
 ```powershell
-python src/pdf_analyzer.py path/to/contract.pdf
+python src/train_bert.py --model both
 ```
 
-## 📊 Performance
-The current baseline uses a Logistic Regression model with balanced class weights to handle the inherent imbalance in legal clauses.
-- **Accuracy**: 86.87%
-- **F1-Score**: 0.87 (Weighted)
+## Evaluation
+```powershell
+python src/evaluate_models.py
+```
+Outputs:
+- evaluation/metrics.json
+- evaluation/baseline_comparison.json
+- evaluation/calibration.json
+- evaluation/error_samples.csv
+- evaluation/confusion_matrix.png
+- evaluation/class_distribution.png
+- evaluation/reliability_diagram.png
+
+## Run the App
+```powershell
+python app.py
+```
+Routes:
+- / : Upload and analyze PDFs
+- /evaluation : Model evaluation dashboard
+- /api/metrics : Evaluation metrics JSON
+- /api/error-samples : Error sample records
+
+## Risk Scoring Formula
+Score is normalized between 0 and 100 using impact x likelihood:
+```
+score = (sum(impact(label) * confidence) / sum(impact(label))) * 100
+```
+Impact weights prioritize Termination and Liability clauses.
+
