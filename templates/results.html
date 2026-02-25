@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contract Risk Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body class="dashboard-bg">
+  <div class="container-fluid py-4 px-md-4 px-lg-5">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+      <div>
+        <h1 class="h3 mb-1">Legal Risk Analysis Dashboard</h1>
+        <p class="text-muted mb-0">Professional clause-level risk insights and explainability</p>
+      </div>
+      <div class="d-flex gap-2">
+        <a class="btn btn-outline-secondary" href="{{ url_for('index') }}">Analyze Another Contract</a>
+        <a class="btn btn-outline-secondary" href="{{ url_for('evaluation_dashboard') }}">View Evaluation</a>
+        <a class="btn btn-primary" href="{{ url_for('download_report', filename=filename) }}">Download Risk Report (PDF)</a>
+      </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+      <div class="col-lg-9">
+        <div class="card app-card border-0 shadow-sm rounded-4 h-100">
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-md-4">
+                <div class="meta-label">Contract File</div>
+                <div class="meta-value">{{ filename }}</div>
+              </div>
+              <div class="col-md-4">
+                <div class="meta-label">Date Analyzed</div>
+                <div class="meta-value">{{ analyzed_at }}</div>
+              </div>
+              <div class="col-md-4">
+                <div class="meta-label">Total Clauses</div>
+                <div class="meta-value">{{ summary.total_clauses }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-3">
+        <div class="card app-card border-0 shadow-sm rounded-4 h-100">
+          <div class="card-body d-flex flex-column align-items-center justify-content-center">
+            <div class="risk-ring" style="--score: {{ overall_risk_score }};">
+              <div class="risk-ring-inner">{{ overall_risk_score }}%</div>
+            </div>
+            <div class="mt-2 text-center fw-semibold">Overall Contract Risk Score</div>
+            <div class="small text-muted text-center mt-2">Normalized weighted score between 0 and 100</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+      <div class="col-lg-7">
+        <div class="card app-card border-0 shadow-sm rounded-4 h-100">
+          <div class="card-body">
+            <h2 class="h6 mb-3">Risk Score Breakdown</h2>
+            <p class="text-muted small mb-2">{{ risk_score_breakdown.formula }}</p>
+            <div class="row g-2 small">
+              <div class="col-sm-6">Liability impact: <strong>{{ risk_score_breakdown.impact_weights['Liability Risk'] }}</strong></div>
+              <div class="col-sm-6">Termination impact: <strong>{{ risk_score_breakdown.impact_weights['Termination Risk'] }}</strong></div>
+              <div class="col-sm-6">Data Privacy impact: <strong>{{ risk_score_breakdown.impact_weights['Data Privacy Risk'] }}</strong></div>
+              <div class="col-sm-6">Payment impact: <strong>{{ risk_score_breakdown.impact_weights['Payment Risk'] }}</strong></div>
+              <div class="col-sm-6">Neutral impact: <strong>{{ risk_score_breakdown.impact_weights['Neutral'] }}</strong></div>
+            </div>
+            <hr>
+            <div class="small">
+              Total severity score: <strong>{{ risk_score_breakdown.total_severity_score }}</strong> /
+              Max possible: <strong>{{ risk_score_breakdown.max_possible }}</strong>
+              → Score: <strong>{{ risk_score_breakdown.normalized_score }}</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-5">
+        <div class="card app-card border-0 shadow-sm rounded-4 h-100">
+          <div class="card-body">
+            <h2 class="h6 mb-3">Model Comparison (Validation)</h2>
+            {% if model_comparison.available %}
+              <div class="small mb-2">BERT Macro F1: <strong>{{ model_comparison.bert_macro_f1 }}</strong></div>
+              <div class="small mb-2">Legal-BERT Macro F1: <strong>{{ model_comparison.legal_bert_macro_f1 }}</strong></div>
+              <div class="small">Performance Delta (Legal-BERT - BERT): <strong>{{ model_comparison.delta }}</strong></div>
+            {% else %}
+              <div class="small text-muted">Run evaluation pipeline to populate comparison metrics.</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card app-card border-0 shadow-sm rounded-4 mb-4">
+      <div class="card-body">
+        <h2 class="h6 mb-3">Executive Risk Summary</h2>
+        <ul class="mb-0">
+          {% for line in executive_summary %}
+            <li>{{ line }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+
+    {% if error %}
+      <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+
+    <div class="row g-3 mb-4">
+      <div class="col-sm-6 col-lg-2">
+        <div class="card app-card border-0 shadow-sm rounded-4 h-100">
+          <div class="card-body stat-card">
+            <div class="stat-title">Total Clauses</div>
+            <div class="stat-value">{{ summary.total_clauses }}</div>
+            <div class="stat-sub">100%</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-lg-2">
+        <div class="card app-card border-0 shadow-sm rounded-4 h-100">
+          <div class="card-body stat-card">
+            <div class="stat-title">High Risk</div>
+            <div class="stat-value">{{ summary.high_risk_count }}</div>
+            <div class="stat-sub">{{ summary.severity_percentages.High }}%</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-lg-2">
+        <div class="card app-card border-0 shadow-sm rounded-4 h-100">
+          <div class="card-body stat-card">
+            <div class="stat-title">Medium Risk</div>
+            <div class="stat-value">{{ summary.medium_risk_count }}</div>
+            <div class="stat-sub">{{ summary.severity_percentages.Medium }}%</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-lg-2">
+        <div class="card app-card border-0 shadow-sm rounded-4 h-100">
+          <div class="card-body stat-card">
+            <div class="stat-title">Low Risk</div>
+            <div class="stat-value">{{ summary.low_risk_count }}</div>
+            <div class="stat-sub">{{ summary.severity_percentages.Low }}%</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-lg-2">
+        <div class="card app-card border-0 shadow-sm rounded-4 h-100">
+          <div class="card-body stat-card">
+            <div class="stat-title">Neutral</div>
+            <div class="stat-value">{{ summary.neutral_count }}</div>
+            <div class="stat-sub">{{ summary.severity_percentages['None'] }}%</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+      <div class="col-lg-6">
+        <div class="card app-card border-0 shadow-sm rounded-4 h-100">
+          <div class="card-body">
+            <h2 class="h6 mb-3">Risk Label Distribution</h2>
+            <canvas id="riskLabelPieChart" height="180"></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-6">
+        <div class="card app-card border-0 shadow-sm rounded-4 h-100">
+          <div class="card-body">
+            <h2 class="h6 mb-3">Severity Distribution</h2>
+            <canvas id="severityBarChart" height="180"></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-12">
+        <div class="card app-card border-0 shadow-sm rounded-4 h-100">
+          <div class="card-body">
+            <h2 class="h6 mb-3">Confidence Calibration</h2>
+            <canvas id="confidenceHistogramChart" height="120"></canvas>
+            <div class="small text-muted mt-2">Dashed line marks high-risk confidence threshold ({{ high_conf_threshold }}).</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card app-card border-0 shadow-sm rounded-4 mb-3">
+      <div class="card-body">
+        <div class="row g-2 align-items-end">
+          <div class="col-md-4">
+            <label class="form-label">Search Clauses</label>
+            <input id="searchInput" type="text" class="form-control" placeholder="Search by keyword...">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Filter by Risk Label</label>
+            <select id="riskFilter" class="form-select">
+              <option value="">All</option>
+              <option value="Liability Risk">Liability Risk</option>
+              <option value="Termination Risk">Termination Risk</option>
+              <option value="Payment Risk">Payment Risk</option>
+              <option value="Data Privacy Risk">Data Privacy Risk</option>
+              <option value="Neutral">Neutral</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Filter by Severity</label>
+            <select id="severityFilter" class="form-select">
+              <option value="">All</option>
+              <option value="High">High</option>
+              <option value="Medium">Medium</option>
+              <option value="Low">Low</option>
+              <option value="None">None</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Sort Clauses</label>
+            <select id="sortSelect" class="form-select">
+              <option value="confidence">Confidence (Descending)</option>
+              <option value="length">Clause Length</option>
+              <option value="risk">Risk Type</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="noResultsMessage" class="alert alert-secondary d-none">No clauses match the selected filters.</div>
+
+    <div class="accordion" id="clausesAccordion">
+      {% for item in results %}
+      <div
+        class="accordion-item clause-card mb-2 border-0 shadow-sm rounded-4 overflow-hidden"
+        data-label="{{ item.label }}"
+        data-severity="{{ item.severity }}"
+        data-confidence="{{ item.confidence }}"
+        data-length="{{ item.clause|length }}"
+      >
+        <h2 class="accordion-header" id="heading{{ item.id }}">
+          <button class="accordion-button collapsed clause-header" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ item.id }}" aria-expanded="false" aria-controls="collapse{{ item.id }}">
+            <div class="w-100 d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-2">
+              <div class="clause-preview" data-original="{{ item.clause_preview | e }}">{{ item.clause_preview }}</div>
+              <div class="d-flex flex-wrap gap-2 align-items-center">
+                <span class="badge {{ item.risk_badge_class }}">{{ item.label }}</span>
+                <span class="badge {{ item.severity_badge_class }}">{{ item.severity }}</span>
+                <span class="badge text-bg-light">{{ item.confidence_pct }}%</span>
+              </div>
+            </div>
+          </button>
+        </h2>
+        <div id="collapse{{ item.id }}" class="accordion-collapse collapse" aria-labelledby="heading{{ item.id }}" data-bs-parent="#clausesAccordion">
+          <div class="accordion-body">
+            <div class="d-flex justify-content-between flex-wrap gap-2 mb-3">
+              <div>
+                <span class="me-2 fw-semibold">Confidence:</span>
+                <span>{{ item.confidence_pct }}%</span>
+              </div>
+              <button type="button" class="btn btn-outline-primary btn-sm explain-btn" data-id="{{ item.id }}" data-clause="{{ item.clause | e }}">Generate SHAP Explanation</button>
+            </div>
+
+            <div class="mb-3 explanation-block">
+              <div class="section-title">Clause Text</div>
+              <div id="full-clause-{{ item.id }}" class="clause-full" data-original="{{ item.clause | e }}">{{ item.clause }}</div>
+            </div>
+
+            <div class="explanation-block">
+              <div class="section-title">Explainability</div>
+              <div id="explain-status-{{ item.id }}" class="small text-muted mb-2">Click "Generate SHAP Explanation" to view important words.</div>
+              <div id="explain-words-{{ item.id }}" class="small"></div>
+              <div id="explain-positive-{{ item.id }}" class="small mt-1"></div>
+              <div id="explain-negative-{{ item.id }}" class="small mt-1"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <script id="pie-labels-json" type="application/json">{{ pie_labels | tojson }}</script>
+  <script id="pie-values-json" type="application/json">{{ pie_values | tojson }}</script>
+  <script id="bar-labels-json" type="application/json">{{ bar_labels | tojson }}</script>
+  <script id="bar-values-json" type="application/json">{{ bar_values | tojson }}</script>
+  <script id="conf-labels-json" type="application/json">{{ confidence_hist_labels | tojson }}</script>
+  <script id="conf-counts-json" type="application/json">{{ confidence_hist_counts | tojson }}</script>
+  <script id="high-threshold-json" type="application/json">{{ high_conf_threshold | tojson }}</script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script>
+    const pieLabels = JSON.parse(document.getElementById("pie-labels-json").textContent);
+    const pieValues = JSON.parse(document.getElementById("pie-values-json").textContent);
+    const barLabels = JSON.parse(document.getElementById("bar-labels-json").textContent);
+    const barValues = JSON.parse(document.getElementById("bar-values-json").textContent);
+    const confidenceHistLabels = JSON.parse(document.getElementById("conf-labels-json").textContent);
+    const confidenceHistCounts = JSON.parse(document.getElementById("conf-counts-json").textContent);
+    const highConfidenceThreshold = JSON.parse(document.getElementById("high-threshold-json").textContent);
+
+    const pieCtx = document.getElementById("riskLabelPieChart");
+    if (pieCtx) {
+      new Chart(pieCtx, {
+        type: "pie",
+        data: {
+          labels: pieLabels,
+          datasets: [{
+            data: pieValues,
+            backgroundColor: ["#9ca3af", "#334155", "#64748b", "#475569", "#0f172a", "#94a3b8"]
+          }]
+        },
+        options: { responsive: true, plugins: { legend: { position: "bottom" } } }
+      });
+    }
+
+    const barCtx = document.getElementById("severityBarChart");
+    if (barCtx) {
+      new Chart(barCtx, {
+        type: "bar",
+        data: {
+          labels: barLabels,
+          datasets: [{
+            label: "Clauses",
+            data: barValues,
+            backgroundColor: ["#b91c1c", "#c2410c", "#a16207", "#6b7280"]
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+          plugins: { legend: { display: false } }
+        }
+      });
+    }
+
+    const histCtx = document.getElementById("confidenceHistogramChart");
+    if (histCtx) {
+      const thresholdBin = Math.floor(highConfidenceThreshold * confidenceHistLabels.length);
+      const thresholdLinePlugin = {
+        id: "thresholdLinePlugin",
+        afterDatasetsDraw(chart) {
+          const { ctx, chartArea, scales } = chart;
+          const xScale = scales.x;
+          const xPos = xScale.getPixelForValue(thresholdBin);
+          ctx.save();
+          ctx.setLineDash([6, 4]);
+          ctx.strokeStyle = "#dc2626";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(xPos, chartArea.top);
+          ctx.lineTo(xPos, chartArea.bottom);
+          ctx.stroke();
+          ctx.restore();
+        }
+      };
+
+      new Chart(histCtx, {
+        type: "bar",
+        data: {
+          labels: confidenceHistLabels,
+          datasets: [{
+            label: "Confidence Count",
+            data: confidenceHistCounts,
+            backgroundColor: confidenceHistLabels.map((_, idx) => idx >= thresholdBin ? "#dc2626" : "#64748b")
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+          plugins: { legend: { display: false } }
+        },
+        plugins: [thresholdLinePlugin]
+      });
+    }
+
+    const searchInput = document.getElementById("searchInput");
+    const riskFilter = document.getElementById("riskFilter");
+    const severityFilter = document.getElementById("severityFilter");
+    const sortSelect = document.getElementById("sortSelect");
+    const accordion = document.getElementById("clausesAccordion");
+    const noResultsMessage = document.getElementById("noResultsMessage");
+
+    function escapeRegex(text) {
+      return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    }
+
+    function escapeHtml(text) {
+      return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function highlightText(text, keyword) {
+      const safe = escapeRegex(keyword.trim());
+      if (!safe) {
+        return escapeHtml(text);
+      }
+      const re = new RegExp(`(${safe})`, "gi");
+      return escapeHtml(text).replace(re, '<mark class="search-highlight">$1</mark>');
+    }
+
+    function sortCards(cards, mode) {
+      return cards.sort((a, b) => {
+        if (mode === "length") {
+          return Number(b.dataset.length) - Number(a.dataset.length);
+        }
+        if (mode === "risk") {
+          return a.dataset.label.localeCompare(b.dataset.label);
+        }
+        return Number(b.dataset.confidence) - Number(a.dataset.confidence);
+      });
+    }
+
+    function applyFiltersAndSearch() {
+      const query = searchInput.value.trim().toLowerCase();
+      const selectedRisk = riskFilter.value;
+      const selectedSeverity = severityFilter.value;
+
+      const cards = Array.from(accordion.querySelectorAll(".clause-card"));
+      const sortedCards = sortCards(cards, sortSelect.value);
+      sortedCards.forEach(card => accordion.appendChild(card));
+
+      let visibleCount = 0;
+      cards.forEach(card => {
+        const label = card.dataset.label;
+        const severity = card.dataset.severity;
+        const fullTextEl = card.querySelector(".clause-full");
+        const previewEl = card.querySelector(".clause-preview");
+        const baseFull = fullTextEl.dataset.original || fullTextEl.textContent;
+        const basePreview = previewEl.dataset.original || previewEl.textContent;
+        const textMatch = !query || baseFull.toLowerCase().includes(query);
+        const riskMatch = !selectedRisk || selectedRisk === label;
+        const severityMatch = !selectedSeverity || selectedSeverity === severity;
+
+        const show = textMatch && riskMatch && severityMatch;
+        card.classList.toggle("d-none", !show);
+
+        if (show) {
+          visibleCount += 1;
+          if (query) {
+            fullTextEl.innerHTML = highlightText(baseFull, query);
+            previewEl.innerHTML = highlightText(basePreview, query);
+          } else {
+            fullTextEl.textContent = baseFull;
+            previewEl.textContent = basePreview;
+          }
+        }
+      });
+
+      noResultsMessage.classList.toggle("d-none", visibleCount > 0);
+    }
+
+    function highlightTokens(text, tokens) {
+      let html = escapeHtml(text);
+      tokens.forEach(token => {
+        const safe = escapeRegex(token);
+        if (!safe) {
+          return;
+        }
+        const re = new RegExp(`\\b(${safe})\\b`, "gi");
+        html = html.replace(re, '<span class="token-highlight">$1</span>');
+      });
+      return html;
+    }
+
+    async function runExplanation(btn) {
+      const id = btn.dataset.id;
+      const clause = btn.dataset.clause;
+      const status = document.getElementById(`explain-status-${id}`);
+      const wordsBox = document.getElementById(`explain-words-${id}`);
+      const positiveBox = document.getElementById(`explain-positive-${id}`);
+      const negativeBox = document.getElementById(`explain-negative-${id}`);
+      const clauseBox = document.getElementById(`full-clause-${id}`);
+
+      btn.disabled = true;
+      status.textContent = "Generating SHAP explanation...";
+      wordsBox.textContent = "";
+      positiveBox.textContent = "";
+      negativeBox.textContent = "";
+
+      try {
+        const res = await fetch("{{ url_for('explain_clause') }}", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ clause })
+        });
+        const payload = await res.json();
+        if (!res.ok) {
+          status.textContent = payload.error || "Failed to generate explanation.";
+          return;
+        }
+
+        const tokens = payload.top_contributing_words || [];
+        const positiveTokens = payload.top_positive_words || [];
+        const negativeTokens = payload.top_negative_words || [];
+        const threshold = payload.shap_threshold;
+        status.textContent = "Top contributing words identified:";
+        wordsBox.textContent = tokens.length ? tokens.join(", ") : "No top words available.";
+        positiveBox.textContent = positiveTokens.length ? `Positive contributors: ${positiveTokens.join(", ")}` : "Positive contributors: none";
+        negativeBox.textContent = negativeTokens.length ? `Negative contributors: ${negativeTokens.join(", ")}` : "Negative contributors: none";
+        if (threshold !== undefined) {
+          status.textContent = `Top contributing words identified (|SHAP| >= ${threshold}):`;
+        }
+        clauseBox.innerHTML = highlightTokens(clause, tokens);
+      } catch (err) {
+        status.textContent = "Error generating explanation.";
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    searchInput.addEventListener("input", applyFiltersAndSearch);
+    riskFilter.addEventListener("change", applyFiltersAndSearch);
+    severityFilter.addEventListener("change", applyFiltersAndSearch);
+    sortSelect.addEventListener("change", applyFiltersAndSearch);
+
+    document.querySelectorAll(".explain-btn").forEach(btn => {
+      btn.addEventListener("click", () => runExplanation(btn));
+    });
+
+    applyFiltersAndSearch();
+  </script>
+</body>
+</html>

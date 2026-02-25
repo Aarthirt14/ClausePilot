@@ -1,0 +1,170 @@
+.dashboard-bg {
+  background: #f4f6f8;
+  color: #1f2937;
+  font-family: "Inter", "Segoe UI", Tahoma, sans-serif;
+}
+
+.app-card {
+  background: #ffffff;
+}
+
+.meta-label {
+  font-size: 0.78rem;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.meta-value {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.stat-card .stat-title {
+  color: #6b7280;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.stat-card .stat-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.stat-card .stat-sub {
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.risk-ring {
+  --score: 0;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: conic-gradient(#334155 calc(var(--score) * 1%), #e5e7eb 0);
+  display: grid;
+  place-items: center;
+}
+
+.risk-ring-inner {
+  width: 108px;
+  height: 108px;
+  border-radius: 50%;
+  background: #ffffff;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.clause-card {
+  border-radius: 14px;
+}
+
+.clause-header:not(.collapsed) {
+  background: #f8fafc;
+}
+
+.clause-preview {
+  font-size: 0.95rem;
+  color: #334155;
+  font-weight: 500;
+  margin-right: 12px;
+}
+
+.section-title {
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #64748b;
+  margin-bottom: 6px;
+}
+
+.clause-full {
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 12px;
+  line-height: 1.55;
+}
+
+.explanation-block {
+  border-top: 1px solid #e5e7eb;
+  padding-top: 12px;
+}
+
+.badge-risk-liability {
+  background: #b91c1c;
+  color: #fff;
+}
+
+.badge-risk-termination {
+  background: #c2410c;
+  color: #fff;
+}
+
+.badge-risk-payment {
+  background: #a16207;
+  color: #fff;
+}
+
+.badge-risk-privacy {
+  background: #1d4ed8;
+  color: #fff;
+}
+
+.badge-risk-neutral {
+  background: #6b7280;
+  color: #fff;
+}
+
+.badge-sev-high {
+  background: #dc2626;
+  color: #fff;
+}
+
+.badge-sev-medium {
+  background: #ea580c;
+  color: #fff;
+}
+
+.badge-sev-low {
+  background: #ca8a04;
+  color: #fff;
+}
+
+.badge-sev-none {
+  background: #9ca3af;
+  color: #111827;
+}
+
+.token-highlight {
+  background: rgba(37, 99, 235, 0.18);
+  border-radius: 4px;
+  padding: 0 2px;
+}
+
+.search-highlight {
+  background: rgba(15, 23, 42, 0.18);
+  border-radius: 4px;
+  padding: 0 2px;
+}
+
+@media (max-width: 768px) {
+  .risk-ring {
+    width: 120px;
+    height: 120px;
+  }
+
+  .risk-ring-inner {
+    width: 92px;
+    height: 92px;
+  }
+
+  .clause-preview {
+    margin-right: 0;
+  }
+}

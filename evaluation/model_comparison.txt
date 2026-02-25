@@ -1,0 +1,5 @@
+{
+  "bert_macro_f1": 0.6755,
+  "legal_bert_macro_f1": null,
+  "f1_delta_legal_minus_bert": null
+}
