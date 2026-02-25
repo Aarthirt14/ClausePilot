@@ -1,34 +1,229 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Contract Risk Analysis Dashboard</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-</head>
-<body class="dashboard-bg">
-  <div class="container py-5">
-    <div class="row justify-content-center">
-      <div class="col-lg-8 col-xl-7">
-        <div class="card app-card shadow-sm border-0 rounded-4 p-4 p-md-5">
-          <div class="mb-4">
-            <h1 class="h3 mb-2">Contract Risk Clause Detection</h1>
-            <p class="text-muted mb-0">Upload a contract PDF to extract clauses, detect legal risk types, and review explainability insights.</p>
-          </div>
+{% extends "base.html" %}
 
-          <form action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data">
-            <div class="mb-3">
-              <label for="file" class="form-label">Contract PDF</label>
-              <input id="file" type="file" class="form-control" name="file" accept="application/pdf" required>
+{% block title %}Upload Contract - ClausePilot{% endblock %}
+{% block page_title %}Upload Contract{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="row justify-content-center">
+    <div class="col-xxl-8 col-xl-9 col-lg-10">
+      
+      <!-- Hero Section -->
+      <div class="text-center mb-5">
+        <div class="d-inline-flex align-items-center justify-content-center bg-primary-subtle rounded-circle mb-3" style="width: 80px; height: 80px;">
+          <i class="bi bi-file-earmark-text text-primary" style="font-size: 2.5rem;"></i>
+        </div>
+        <h1 class="display-5 fw-bold mb-3">AI-Powered Contract Risk Analysis</h1>
+        <p class="lead text-muted mb-0">Upload your legal contract and let our BERT-based AI identify high-risk clauses with explainability insights.</p>
+      </div>
+
+      <!-- Upload Card -->
+      <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-4 p-md-5">
+          <form action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data" id="uploadForm">
+            
+            <!-- Drag and Drop Zone -->
+            <div class="upload-zone" id="uploadZone">
+              <input type="file" name="file" id="fileInput" accept="application/pdf" required hidden>
+              <div class="upload-zone-content" id="uploadZoneContent">
+                <i class="bi bi-cloud-upload upload-icon"></i>
+                <h5 class="fw-semibold mb-2">Drag & Drop your PDF here</h5>
+                <p class="text-muted mb-3">or click to browse files</p>
+                <button type="button" class="btn btn-primary btn-lg" id="browseBtn">
+                  <i class="bi bi-folder2-open me-2"></i>Browse Files
+                </button>
+                <div class="mt-3">
+                  <small class="text-muted">Supported format: PDF (Max 10MB)</small>
+                </div>
+              </div>
+              
+              <!-- File Preview -->
+              <div class="upload-preview d-none" id="uploadPreview">
+                <div class="d-flex align-items-center gap-3">
+                  <div class="file-icon">
+                    <i class="bi bi-file-earmark-pdf-fill text-danger"></i>
+                  </div>
+                  <div class="flex-grow-1">
+                    <div class="fw-semibold" id="fileName">filename.pdf</div>
+                    <div class="small text-muted" id="fileSize">0 KB</div>
+                  </div>
+                  <button type="button" class="btn btn-sm btn-outline-danger" id="removeFile">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+              </div>
             </div>
-            <div class="d-grid d-md-flex justify-content-md-end">
-              <button type="submit" class="btn btn-primary px-4">Analyze Contract</button>
+
+            <!-- Progress Bar -->
+            <div class="progress-container d-none" id="progressContainer">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="small fw-semibold">Uploading...</span>
+                <span class="small text-muted" id="progressPercent">0%</span>
+              </div>
+              <div class="progress" style="height: 8px;">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                     role="progressbar" 
+                     id="progressBar" 
+                     style="width: 0%"></div>
+              </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="d-grid gap-2 mt-4">
+              <button type="submit" class="btn btn-primary btn-lg" id="submitBtn" disabled>
+                <i class="bi bi-lightning-charge-fill me-2"></i>Analyze Contract
+              </button>
             </div>
           </form>
         </div>
       </div>
+
+      <!-- Features Grid -->
+      <div class="row g-4">
+        <div class="col-md-4">
+          <div class="feature-card text-center">
+            <div class="feature-icon bg-primary-subtle text-primary">
+              <i class="bi bi-shield-check"></i>
+            </div>
+            <h6 class="fw-semibold mb-2">5 Risk Categories</h6>
+            <p class="small text-muted mb-0">Liability, Termination, Data Privacy, Payment, Neutral</p>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="feature-card text-center">
+            <div class="feature-icon bg-success-subtle text-success">
+              <i class="bi bi-graph-up-arrow"></i>
+            </div>
+            <h6 class="fw-semibold mb-2">SHAP Explainability</h6>
+            <p class="small text-muted mb-0">Understand why the model made each prediction</p>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="feature-card text-center">
+            <div class="feature-icon bg-warning-subtle text-warning">
+              <i class="bi bi-speedometer2"></i>
+            </div>
+            <h6 class="fw-semibold mb-2">Confidence Calibration</h6>
+            <p class="small text-muted mb-0">Temperature-scaled probabilities for accuracy</p>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
-</body>
-</html>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// File upload drag & drop functionality
+const uploadZone = document.getElementById('uploadZone');
+const uploadZoneContent = document.getElementById('uploadZoneContent');
+const uploadPreview = document.getElementById('uploadPreview');
+const fileInput = document.getElementById('fileInput');
+const browseBtn = document.getElementById('browseBtn');
+const removeFileBtn = document.getElementById('removeFile');
+const submitBtn = document.getElementById('submitBtn');
+const uploadForm = document.getElementById('uploadForm');
+const progressContainer = document.getElementById('progressContainer');
+const progressBar = document.getElementById('progressBar');
+const progressPercent = document.getElementById('progressPercent');
+
+// Prevent default drag behaviors
+['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+  uploadZone.addEventListener(eventName, preventDefaults, false);
+  document.body.addEventListener(eventName, preventDefaults, false);
+});
+
+function preventDefaults(e) {
+  e.preventDefault();
+  e.stopPropagation();
+}
+
+// Highlight drop zone when dragging over it
+['dragenter', 'dragover'].forEach(eventName => {
+  uploadZone.addEventListener(eventName, () => {
+    uploadZone.classList.add('drag-over');
+  });
+});
+
+['dragleave', 'drop'].forEach(eventName => {
+  uploadZone.addEventListener(eventName, () => {
+    uploadZone.classList.remove('drag-over');
+  });
+});
+
+// Handle dropped files
+uploadZone.addEventListener('drop', (e) => {
+  const dt = e.dataTransfer;
+  const files = dt.files;
+  handleFiles(files);
+});
+
+// Handle browse button click
+browseBtn.addEventListener('click', () => {
+  fileInput.click();
+});
+
+// Handle file selection via browse
+fileInput.addEventListener('change', (e) => {
+  handleFiles(e.target.files);
+});
+
+// Remove file
+removeFileBtn.addEventListener('click', () => {
+  fileInput.value = '';
+  uploadZoneContent.classList.remove('d-none');
+  uploadPreview.classList.add('d-none');
+  submitBtn.disabled = true;
+  uploadZone.classList.remove('has-file');
+});
+
+// Process selected file
+function handleFiles(files) {
+  if (files.length === 0) return;
+  
+  const file = files[0];
+  
+  // Validate file type
+  if (file.type !== 'application/pdf') {
+    alert('Please upload a PDF file only.');
+    return;
+  }
+  
+  // Validate file size (10MB max)
+  const maxSize = 10 * 1024 * 1024;
+  if (file.size > maxSize) {
+    alert('File size must be less than 10MB.');
+    return;
+  }
+  
+  // Update preview
+  document.getElementById('fileName').textContent = file.name;
+  document.getElementById('fileSize').textContent = formatFileSize(file.size);
+  
+  uploadZoneContent.classList.add('d-none');
+  uploadPreview.classList.remove('d-none');
+  uploadZone.classList.add('has-file');
+  submitBtn.disabled = false;
+}
+
+// Format file size
+function formatFileSize(bytes) {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+}
+
+// Handle form submission with progress bar (simulation)
+uploadForm.addEventListener('submit', (e) => {
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Analyzing...';
+  
+  // Note: For real upload progress, you'd need to use XMLHttpRequest or Fetch API
+  // with progress events. For now, the form submits normally and Flask handles it.
+});
+</script>
+{% endblock %}
