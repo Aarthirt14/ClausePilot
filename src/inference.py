@@ -4,6 +4,8 @@ from typing import Dict, List
 import torch
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
+from src.category_mapper import enhance_label_with_text_detection
+
 
 def assign_severity(label: str, confidence: float) -> str:
     """
@@ -95,15 +97,24 @@ def infer_clauses(
             confidence = float(probs[pred_id].item())
 
             label_map = model.config.id2label or {}
-            label = str(label_map.get(pred_id, pred_id))
-            severity = assign_severity(label, confidence)
+            raw_label = str(label_map.get(pred_id, pred_id))
+            
+            # Enhance label with category mapping and text-based detection (includes IP Risk)
+            enhanced_label, adjusted_confidence, detection_method = enhance_label_with_text_detection(
+                raw_label, clause_text, confidence
+            )
+            
+            severity = assign_severity(enhanced_label, adjusted_confidence)
 
             results.append(
                 {
                     "clause": clause_text,
-                    "label": label,
-                    "confidence": round(confidence, 4),
+                    "label": enhanced_label,
+                    "raw_label": raw_label,
+                    "confidence": round(adjusted_confidence, 4),
+                    "original_confidence": round(confidence, 4),
                     "severity": severity,
+                    "detection_method": detection_method,
                 }
             )
 

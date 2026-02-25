@@ -578,3 +578,81 @@ body {
   background: #111827;
   border-color: #374151;
 }
+
+/* ============================================
+   Custom Risk Category Badge Colors
+   ============================================ */
+.badge-risk-liability {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.badge-risk-termination {
+  background-color: #ffedd5;
+  color: #9a3412;
+}
+
+.badge-risk-payment {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.badge-risk-privacy {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.badge-risk-ip {
+  background-color: #e9d5ff;
+  color: #6b21a8;
+}
+
+.badge-risk-neutral {
+  background-color: #f3f4f6;
+  color: #4b5563;
+}
+
+.badge-sev-high {
+  background-color: #fecaca;
+  color: #991b1b;
+}
+
+.badge-sev-medium {
+  background-color: #fed7aa;
+  color: #9a3412;
+}
+
+.badge-sev-low {
+  background-color: #fef9c3;
+  color: #854d0e;
+}
+
+.badge-sev-none {
+  background-color: #e5e7eb;
+  color: #6b7280;
+}
+
+[data-bs-theme="dark"] .badge-risk-liability {
+  background-color: #7f1d1d;
+  color: #fecaca;
+}
+
+[data-bs-theme="dark"] .badge-risk-termination {
+  background-color: #7c2d12;
+  color: #fed7aa;
+}
+
+[data-bs-theme="dark"] .badge-risk-payment {
+  background-color: #78350f;
+  color: #fef3c7;
+}
+
+[data-bs-theme="dark"] .badge-risk-privacy {
+  background-color: #1e3a8a;
+  color: #bfdbfe;
+}
+
+[data-bs-theme="dark"] .badge-risk-ip {
+  background-color: #581c87;
+  color: #e9d5ff;
+}

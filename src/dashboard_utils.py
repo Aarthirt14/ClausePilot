@@ -173,6 +173,7 @@ def enrich_results(results: List[Dict[str, object]]) -> List[Dict[str, object]]:
         "Termination Risk": "badge-risk-termination",
         "Payment Risk": "badge-risk-payment",
         "Data Privacy Risk": "badge-risk-privacy",
+        "IP Risk": "badge-risk-ip",
         "Neutral": "badge-risk-neutral",
     }
     severity_badge_map = {

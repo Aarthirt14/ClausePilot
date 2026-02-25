@@ -16,6 +16,11 @@ from src.dashboard_utils import (
     load_model_comparison_metrics,
 )
 from src.scoring.risk_score import attach_risk_scores
+from src.scoring.advanced_risk_scoring import attach_advanced_risk_scores
+from src.scoring.mitigation_strategies import (
+    generate_mitigation_strategies,
+    generate_executive_mitigation_summary
+)
 from src.explainability import explain_clause_with_shap
 from src.inference import infer_clauses
 from src.pdf_extractor import extract_text_from_pdf
@@ -40,13 +45,32 @@ def analyze_contract(file_path: str) -> dict:
     raw_text = extract_text_from_pdf(file_path)
     clauses = segment_clauses(raw_text)
     predictions = infer_clauses(clauses)
-    scored_results, risk_score_breakdown = attach_risk_scores(predictions)
+    
+    # Use advanced risk scoring (includes IP Risk, financial exposure, confidence calibration)
+    scored_results, risk_score_breakdown = attach_advanced_risk_scores(predictions)
+    
+    # Enrich with mitigation strategies
+    for item in scored_results:
+        label = item.get("label", "Neutral")
+        severity = item.get("severity", "None")
+        risk_triggers = item.get("high_risk_detection", {}).get("risk_triggers", [])
+        monetary_value = item.get("extracted_metadata", {}).get("monetary_value", 0.0)
+        durations = item.get("extracted_metadata", {}).get("durations", {})
+        
+        mitigations = generate_mitigation_strategies(
+            label, severity, risk_triggers, monetary_value, durations
+        )
+        item["mitigation_strategies"] = mitigations
+    
     enriched_results = enrich_results(scored_results)
     summary = build_risk_summary(enriched_results)
     overall_risk_score = float(risk_score_breakdown.get("normalized_score", 0.0))
     executive_summary = build_executive_summary(enriched_results, summary, overall_risk_score)
     confidence_histogram = build_confidence_histogram_data(enriched_results, bins=10)
     model_comparison = load_model_comparison_metrics("evaluation/evaluation_report.json")
+    
+    # Generate mitigation summary
+    mitigation_summary = generate_executive_mitigation_summary(enriched_results)
 
     return {
         "results": enriched_results,
@@ -56,6 +80,7 @@ def analyze_contract(file_path: str) -> dict:
         "executive_summary": executive_summary,
         "confidence_histogram": confidence_histogram,
         "model_comparison": model_comparison,
+        "mitigation_summary": mitigation_summary,
         "total_clauses": len(enriched_results),
     }
 

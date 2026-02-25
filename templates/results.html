@@ -40,7 +40,7 @@
           <div class="row align-items-center">
             <div class="col-md-8">
               <h5 class="fw-bold mb-3">Overall Contract Risk Score</h5>
-              <p class="mb-2 opacity-90">Impact × Likelihood scoring formula: {{ risk_score_breakdown.formula }}</p>
+              <p class="mb-2 opacity-90">{{ risk_score_breakdown.scoring_method }}</p>
               <div class="d-flex flex-wrap gap-4 mt-3">
                 <div>
                   <small class="opacity-75">Total Risk Score</small>
@@ -48,12 +48,18 @@
                 </div>
                 <div>
                   <small class="opacity-75">Max Possible</small>
-                  <div class="fs-6 fw-semibold">{{ risk_score_breakdown.max_possible }}</div>
+                  <div class="fs-6 fw-semibold">{{ risk_score_breakdown.max_possible_score }}</div>
                 </div>
                 <div>
                   <small class="opacity-75">Normalized</small>
                   <div class="fs-6 fw-semibold">{{ risk_score_breakdown.normalized_score }}</div>
                 </div>
+                {% if risk_score_breakdown.high_risk_count > 0 %}
+                <div>
+                  <small class="opacity-75">High-Risk Patterns</small>
+                  <div class="fs-6 fw-semibold text-danger">{{ risk_score_breakdown.high_risk_count }}</div>
+                </div>
+                {% endif %}
               </div>
             </div>
             <div class="col-md-4 text-center">
@@ -142,23 +148,27 @@
           <div class="impact-weight-list">
             <div class="impact-weight-item">
               <span class="fw-semibold">Liability Risk</span>
-              <span class="badge bg-danger-subtle text-danger">{{ risk_score_breakdown.impact_weights['Liability Risk'] }}</span>
+              <span class="badge bg-danger-subtle text-danger">{{ risk_score_breakdown.category_weights['Liability Risk'] }}</span>
             </div>
             <div class="impact-weight-item">
               <span class="fw-semibold">Termination Risk</span>
-              <span class="badge bg-danger-subtle text-danger">{{ risk_score_breakdown.impact_weights['Termination Risk'] }}</span>
+              <span class="badge bg-danger-subtle text-danger">{{ risk_score_breakdown.category_weights['Termination Risk'] }}</span>
+            </div>
+            <div class="impact-weight-item">
+              <span class="fw-semibold">IP Risk</span>
+              <span class="badge bg-primary-subtle text-primary">{{ risk_score_breakdown.category_weights['IP Risk'] }}</span>
             </div>
             <div class="impact-weight-item">
               <span class="fw-semibold">Data Privacy Risk</span>
-              <span class="badge bg-warning-subtle text-warning">{{ risk_score_breakdown.impact_weights['Data Privacy Risk'] }}</span>
+              <span class="badge bg-warning-subtle text-warning">{{ risk_score_breakdown.category_weights['Data Privacy Risk'] }}</span>
             </div>
             <div class="impact-weight-item">
               <span class="fw-semibold">Payment Risk</span>
-              <span class="badge bg-warning-subtle text-warning">{{ risk_score_breakdown.impact_weights['Payment Risk'] }}</span>
+              <span class="badge bg-warning-subtle text-warning">{{ risk_score_breakdown.category_weights['Payment Risk'] }}</span>
             </div>
             <div class="impact-weight-item">
               <span class="fw-semibold">Neutral</span>
-              <span class="badge bg-secondary-subtle text-secondary">{{ risk_score_breakdown.impact_weights['Neutral'] }}</span>
+              <span class="badge bg-secondary-subtle text-secondary">{{ risk_score_breakdown.category_weights['Neutral'] }}</span>
             </div>
           </div>
         </div>
@@ -223,6 +233,7 @@
             <option value="">All Labels</option>
             <option value="Liability Risk">Liability Risk</option>
             <option value="Termination Risk">Termination Risk</option>
+            <option value="IP Risk">IP Risk</option>
             <option value="Payment Risk">Payment Risk</option>
             <option value="Data Privacy Risk">Data Privacy Risk</option>
             <option value="Neutral">Neutral</option>
@@ -429,6 +440,7 @@
           backgroundColor: [
             "rgba(220, 38, 38, 0.8)",   // Liability - red
             "rgba(234, 88, 12, 0.8)",   // Termination - orange
+            "rgba(107, 33, 168, 0.8)",  // IP - purple
             "rgba(161, 98, 7, 0.8)",    // Payment - yellow
             "rgba(37, 99, 235, 0.8)",   // Data Privacy - blue
             "rgba(107, 114, 128, 0.8)"  // Neutral - gray
