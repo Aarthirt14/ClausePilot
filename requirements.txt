@@ -1,12 +1,26 @@
-transformers
-torch
-scikit-learn
-pandas
-numpy
-shap
-flask
-pdfplumber
-datasets
-requests
-reportlab
-matplotlib
+# Pinned with compatible-release ranges (~= floors a minor version,
+# allows patch releases) rather than exact pins. This keeps the build
+# reproducible without locking out security/bugfix patches. The two
+# heaviest, fastest-moving libraries (torch, transformers) are capped
+# below their next major version since this codebase targets the
+# transformers 4.x / torch 2.x API surface and hasn't been validated
+# against breaking changes in newer majors.
+#
+# GPU users: install torch separately first using the index for your
+# CUDA version (see https://pytorch.org/get-started/locally/), then
+# run `pip install -r requirements.txt` -- pip will see torch is
+# already satisfied and skip the CPU-only wheel.
+
+transformers>=4.41,<5.0
+torch>=2.2,<3.0
+scikit-learn~=1.5
+pandas~=2.2
+numpy~=1.26
+shap~=0.46
+flask~=3.0
+pdfplumber~=0.11
+datasets~=2.20
+requests~=2.32
+reportlab~=4.2
+matplotlib~=3.9
+joblib~=1.4

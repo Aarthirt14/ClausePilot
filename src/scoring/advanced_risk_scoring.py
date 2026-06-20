@@ -100,7 +100,7 @@ def extract_monetary_value(text: str) -> float:
     """
     text_lower = text.lower()
     amounts = []
-    
+
     # Pattern 1: $X,XXX,XXX or $X.X million/billion
     currency_patterns = [
         r'\$\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)',           # $100,000.00
@@ -109,14 +109,14 @@ def extract_monetary_value(text: str) -> float:
         r'(\d{1,3}(?:,\d{3})*)\s*dollars',                  # 100,000 dollars
         r'\$\s*(\d+)k',                                      # $100k
     ]
-    
+
     for pattern in currency_patterns:
         matches = re.finditer(pattern, text_lower, re.IGNORECASE)
         for match in matches:
             try:
                 amount_str = match.group(1).replace(',', '')
                 amount = float(amount_str)
-                
+
                 # Handle million/billion multipliers
                 if len(match.groups()) > 1:
                     multiplier = match.group(2).lower()
@@ -126,15 +126,15 @@ def extract_monetary_value(text: str) -> float:
                         amount *= 1_000_000
                     elif multiplier == 'billion':
                         amount *= 1_000_000_000
-                
+
                 # Handle k suffix
                 if 'k' in match.group(0).lower():
                     amount *= 1_000
-                
+
                 amounts.append(amount)
             except (ValueError, IndexError):
                 continue
-    
+
     # Pattern 2: Text numbers (one hundred thousand)
     text_number_map = {
         'hundred': 100,
@@ -142,7 +142,7 @@ def extract_monetary_value(text: str) -> float:
         'million': 1_000_000,
         'billion': 1_000_000_000,
     }
-    
+
     for word, multiplier in text_number_map.items():
         if word in text_lower and 'dollar' in text_lower:
             # Simple heuristic: extract digit before the word
@@ -151,7 +151,7 @@ def extract_monetary_value(text: str) -> float:
             if match:
                 base = float(match.group(1))
                 amounts.append(base * multiplier)
-    
+
     return max(amounts) if amounts else 0.0
 
 
@@ -174,7 +174,7 @@ def extract_duration(text: str) -> Dict[str, int]:
         "years": 0,
         "notice_period_days": 0
     }
-    
+
     # Extract days
     day_patterns = [
         r'(\d+)\s*(?:calendar\s+)?days?',
@@ -184,7 +184,7 @@ def extract_duration(text: str) -> Dict[str, int]:
         match = re.search(pattern, text_lower)
         if match:
             durations["days"] = max(durations["days"], int(match.group(1)))
-    
+
     # Extract months
     month_patterns = [
         r'(\d+)\s*months?',
@@ -194,7 +194,7 @@ def extract_duration(text: str) -> Dict[str, int]:
         match = re.search(pattern, text_lower)
         if match:
             durations["months"] = max(durations["months"], int(match.group(1)))
-    
+
     # Extract years
     year_patterns = [
         r'(\d+)\s*years?',
@@ -204,7 +204,7 @@ def extract_duration(text: str) -> Dict[str, int]:
         match = re.search(pattern, text_lower)
         if match:
             durations["years"] = max(durations["years"], int(match.group(1)))
-    
+
     # Extract notice periods
     notice_patterns = [
         r'(?:upon|with|provide|giving?)\s+(\d+)\s*(?:calendar\s+)?days?\s+(?:prior\s+)?notice',
@@ -215,7 +215,7 @@ def extract_duration(text: str) -> Dict[str, int]:
         match = re.search(pattern, text_lower)
         if match:
             durations["notice_period_days"] = max(durations["notice_period_days"], int(match.group(1)))
-    
+
     return durations
 
 
@@ -234,17 +234,17 @@ def calculate_financial_exposure_factor(text: str, label: str, monetary_value: f
     """
     if monetary_value is None:
         monetary_value = extract_monetary_value(text)
-    
+
     text_lower = text.lower()
-    
+
     # Check for uncapped/unlimited liability
     if any(keyword in text_lower for keyword in ['uncapped', 'unlimited', 'no limit', 'without limit']):
         return ("critical", EXPOSURE_MULTIPLIERS["critical"])
-    
+
     # Get category-specific threshold
     category_info = RISK_CATEGORIES.get(label, {})
     threshold = category_info.get("financial_threshold", 100000)
-    
+
     # Classify based on amount
     if monetary_value >= 500000:
         return ("critical", EXPOSURE_MULTIPLIERS["critical"])
@@ -277,14 +277,14 @@ def calibrate_confidence(
     """
     if context_signals is None:
         context_signals = {}
-    
+
     calibrated = base_confidence
     adjustments = []
-    
+
     text_lower = text.lower()
     category_info = RISK_CATEGORIES.get(label, {})
     keywords = category_info.get("high_risk_keywords", [])
-    
+
     # 1. Keyword signal strength
     keyword_matches = sum(1 for kw in keywords if kw in text_lower)
     if keyword_matches >= 3:
@@ -293,21 +293,21 @@ def calibrate_confidence(
     elif keyword_matches >= 1:
         calibrated = min(calibrated + 0.05, 1.0)
         adjustments.append({"factor": "Moderate keyword signals", "adjustment": +0.05})
-    
+
     # 2. Financial clarity
     if monetary_value is None:
         monetary_value = extract_monetary_value(text)
-    
+
     if monetary_value > 0:
         calibrated = min(calibrated + 0.08, 1.0)
         adjustments.append({"factor": "Explicit financial amount", "adjustment": +0.08})
-    
+
     # 3. Enforceability signals (legal language strength)
     enforceability_terms = ['shall', 'must', 'will', 'obligated', 'required', 'agrees to']
     if any(term in text_lower for term in enforceability_terms):
         calibrated = min(calibrated + 0.05, 1.0)
         adjustments.append({"factor": "Strong enforceability language", "adjustment": +0.05})
-    
+
     # 4. Specificity check (longer, more detailed clauses)
     if len(text.split()) > 50:
         calibrated = min(calibrated + 0.03, 1.0)
@@ -315,13 +315,13 @@ def calibrate_confidence(
     elif len(text.split()) < 15:
         calibrated = max(calibrated - 0.05, 0.0)
         adjustments.append({"factor": "Short clause (low specificity)", "adjustment": -0.05})
-    
+
     # 5. Negation check (reduces confidence)
     negation_terms = ['not', 'except', 'unless', 'excluding', 'notwithstanding']
     if any(term in text_lower for term in negation_terms):
         calibrated = max(calibrated - 0.07, 0.0)
         adjustments.append({"factor": "Negation/exception language", "adjustment": -0.07})
-    
+
     calibration_details = {
         "original_confidence": round(base_confidence, 4),
         "calibrated_confidence": round(calibrated, 4),
@@ -329,7 +329,7 @@ def calibrate_confidence(
         "keyword_matches": keyword_matches,
         "monetary_value": monetary_value,
     }
-    
+
     return round(calibrated, 4), calibration_details
 
 
@@ -347,7 +347,7 @@ def detect_high_risk_clause(text: str, label: str) -> Dict[str, object]:
     text_lower = text.lower()
     risk_triggers = []
     is_high_risk = False
-    
+
     # Rule 1: Termination triggers (immediate or convenience)
     if label == "Termination Risk":
         if any(term in text_lower for term in ['immediate', 'immediately', 'without notice']):
@@ -359,18 +359,18 @@ def detect_high_risk_clause(text: str, label: str) -> Dict[str, object]:
         if 'no cure' in text_lower or 'without opportunity to cure' in text_lower:
             risk_triggers.append("No cure period provided")
             is_high_risk = True
-    
+
     # Rule 2: Liquidated damages, penalties, late payments
     if label in ["Payment Risk", "Liability Risk"]:
         if any(term in text_lower for term in ['liquidated damages', 'penalty', 'late fee']):
             risk_triggers.append("Liquidated damages or penalties")
             is_high_risk = True
-        
+
         monetary_value = extract_monetary_value(text)
         if monetary_value >= 100000:
             risk_triggers.append(f"High financial exposure (${monetary_value:,.0f})")
             is_high_risk = True
-    
+
     # Rule 3: Indemnification >$100k or uncapped
     if label == "Liability Risk":
         if any(term in text_lower for term in ['indemnif', 'hold harmless', 'defend']):
@@ -381,7 +381,7 @@ def detect_high_risk_clause(text: str, label: str) -> Dict[str, object]:
             if any(term in text_lower for term in ['uncapped', 'unlimited', 'no limit']):
                 risk_triggers.append("Uncapped indemnification liability")
                 is_high_risk = True
-    
+
     # Rule 4: Data privacy & regulatory (PII, GDPR/CCPA)
     if label == "Data Privacy Risk":
         if any(term in text_lower for term in ['pii', 'personal data', 'personally identifiable']):
@@ -393,7 +393,7 @@ def detect_high_risk_clause(text: str, label: str) -> Dict[str, object]:
         if 'data breach' in text_lower:
             risk_triggers.append("Data breach liability")
             is_high_risk = True
-    
+
     # Rule 5: IP ownership, licensing, infringement
     if label == "IP Risk":
         if any(term in text_lower for term in ['ownership', 'assign', 'transfer']):
@@ -408,7 +408,7 @@ def detect_high_risk_clause(text: str, label: str) -> Dict[str, object]:
         if 'work for hire' in text_lower or 'work made for hire' in text_lower:
             risk_triggers.append("Work-for-hire IP assignment")
             is_high_risk = True
-    
+
     return {
         "is_high_risk": is_high_risk,
         "risk_triggers": risk_triggers,
@@ -435,7 +435,7 @@ def compute_advanced_risk_score(
     # Extract financial metadata
     monetary_value = extract_monetary_value(text)
     durations = extract_duration(text)
-    
+
     # Calibrate confidence based on context
     if calibrate:
         calibrated_confidence, calibration_details = calibrate_confidence(
@@ -444,28 +444,28 @@ def compute_advanced_risk_score(
     else:
         calibrated_confidence = base_confidence
         calibration_details = {"original_confidence": base_confidence}
-    
+
     # Get category-specific impact weight
     category_info = RISK_CATEGORIES.get(label, RISK_CATEGORIES["Neutral"])
     base_impact = category_info["base_impact"]
-    
+
     # Calculate financial exposure factor
     exposure_level, exposure_multiplier = calculate_financial_exposure_factor(
         text, label, monetary_value
     )
-    
+
     # Final impact with exposure adjustment
     adjusted_impact = base_impact * exposure_multiplier
-    
+
     # Likelihood is the calibrated confidence
     likelihood = calibrated_confidence
-    
+
     # Advanced severity score: Impact × Likelihood
     severity_score = round(adjusted_impact * likelihood, 4)
-    
+
     # Detect high-risk patterns
     high_risk_detection = detect_high_risk_clause(text, label)
-    
+
     # Determine final severity category
     if high_risk_detection["severity_override"]:
         severity_category = high_risk_detection["severity_override"]
@@ -477,7 +477,7 @@ def compute_advanced_risk_score(
         severity_category = "Medium"
     else:
         severity_category = "Low"
-    
+
     return {
         "label": label,
         "confidence": base_confidence,
@@ -514,12 +514,12 @@ def attach_advanced_risk_scores(results: List[Dict[str, object]]) -> Tuple[List[
     enriched = []
     total_score = 0.0
     max_possible = 0.0
-    
+
     for item in results:
         clause = str(item.get("clause", "")).strip()
         label = str(item.get("label", "Neutral"))
         base_confidence = float(item.get("confidence", 0.0))
-        
+
         # Compute advanced risk assessment
         risk_assessment = compute_advanced_risk_score(
             label=label,
@@ -527,22 +527,22 @@ def attach_advanced_risk_scores(results: List[Dict[str, object]]) -> Tuple[List[
             text=clause,
             calibrate=True
         )
-        
+
         # Merge with original item
         enriched_item = {
             **item,
             **risk_assessment
         }
-        
+
         enriched.append(enriched_item)
-        
+
         # Accumulate for overall score
         total_score += risk_assessment["severity_score"]
         max_possible += risk_assessment["adjusted_impact"]
-    
+
     # Normalize overall score to 0-100
     normalized_score = round((total_score / max_possible) * 100, 2) if max_possible > 0 else 0.0
-    
+
     breakdown = {
         "scoring_method": "Advanced: Impact × Likelihood × Financial Exposure Factor",
         "total_severity_score": round(total_score, 4),
@@ -553,5 +553,5 @@ def attach_advanced_risk_scores(results: List[Dict[str, object]]) -> Tuple[List[
         "high_risk_count": sum(1 for item in enriched if item.get("high_risk_detection", {}).get("is_high_risk")),
         "calibrated_clauses": sum(1 for item in enriched if item.get("calibration_details", {}).get("adjustments")),
     }
-    
+
     return enriched, breakdown

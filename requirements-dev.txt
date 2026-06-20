@@ -1,0 +1,8 @@
+# Dev/test-only dependencies. Install with:
+#   pip install -r requirements.txt -r requirements-dev.txt
+-r requirements.txt
+
+pytest~=8.3
+pytest-mock~=3.14
+fpdf2~=2.7
+ruff~=0.6

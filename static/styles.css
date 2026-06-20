@@ -429,6 +429,16 @@ body {
   border-left: 3px solid var(--danger);
 }
 
+/* Mitigation Strategy Items */
+.mitigation-item {
+  border-left: 3px solid var(--primary);
+  transition: transform 0.15s ease;
+}
+
+.mitigation-item:hover {
+  transform: translateX(2px);
+}
+
 /* Highlighting */
 .token-highlight {
   background: rgba(37, 99, 235, 0.15);

@@ -29,14 +29,14 @@ def generate_mitigation_strategies(
         List of mitigation strategies with priority and action items
     """
     strategies = []
-    
+
     if durations is None:
         durations = {}
-    
+
     # Skip neutral clauses
     if label == "Neutral" or severity == "None":
         return strategies
-    
+
     # === LIABILITY RISK MITIGATIONS ===
     if label == "Liability Risk":
         if any("uncapped" in trigger.lower() or "unlimited" in trigger.lower() for trigger in risk_triggers):
@@ -52,7 +52,7 @@ def generate_mitigation_strategies(
                 "action": "Exclude liability for consequential, indirect, or punitive damages unless explicitly required.",
                 "rationale": "Consequential damages can far exceed direct contract value."
             })
-        
+
         if monetary_value >= 100000:
             strategies.append({
                 "priority": "High",
@@ -60,7 +60,7 @@ def generate_mitigation_strategies(
                 "action": f"Secure professional liability insurance covering at least ${monetary_value:,.0f} to transfer risk.",
                 "rationale": "Insurance mitigates financial impact of indemnification claims."
             })
-        
+
         if any("indemnif" in trigger.lower() for trigger in risk_triggers):
             strategies.append({
                 "priority": "High",
@@ -74,7 +74,7 @@ def generate_mitigation_strategies(
                 "action": "Exclude indemnification for third-party claims arising from other party's actions or IP.",
                 "rationale": "Limits scope of indemnification to your direct actions only."
             })
-        
+
         if severity == "High":
             strategies.append({
                 "priority": "High",
@@ -82,7 +82,7 @@ def generate_mitigation_strategies(
                 "action": "Have legal counsel review liability provisions before signing.",
                 "rationale": "High-severity liability clauses require expert interpretation and negotiation."
             })
-    
+
     # === TERMINATION RISK MITIGATIONS ===
     elif label == "Termination Risk":
         if any("immediate" in trigger.lower() for trigger in risk_triggers):
@@ -92,7 +92,7 @@ def generate_mitigation_strategies(
                 "action": "Negotiate minimum 30-60 day notice period before termination becomes effective.",
                 "rationale": "Provides time to find replacement services or wind down operations."
             })
-        
+
         if any("convenience" in trigger.lower() or "without cause" in trigger.lower() for trigger in risk_triggers):
             strategies.append({
                 "priority": "High",
@@ -106,7 +106,7 @@ def generate_mitigation_strategies(
                 "action": "Make termination for convenience mutual (both parties have equal rights).",
                 "rationale": "Prevents one-sided termination advantage."
             })
-        
+
         if any("no cure" in trigger.lower() for trigger in risk_triggers):
             strategies.append({
                 "priority": "Critical",
@@ -114,7 +114,7 @@ def generate_mitigation_strategies(
                 "action": "Negotiate 30-day cure period for non-material breaches before termination.",
                 "rationale": "Provides opportunity to fix issues and preserve business relationship."
             })
-        
+
         notice_days = durations.get("notice_period_days", 0)
         if notice_days > 0 and notice_days < 30:
             strategies.append({
@@ -123,7 +123,7 @@ def generate_mitigation_strategies(
                 "action": f"Extend notice period from {notice_days} to 30-60 days.",
                 "rationale": "Short notice periods increase operational disruption risk."
             })
-    
+
     # === DATA PRIVACY RISK MITIGATIONS ===
     elif label == "Data Privacy Risk":
         if any("gdpr" in trigger.lower() or "ccpa" in trigger.lower() for trigger in risk_triggers):
@@ -139,7 +139,7 @@ def generate_mitigation_strategies(
                 "action": "Execute Data Processing Agreement (DPA) defining roles, responsibilities, and liability allocation.",
                 "rationale": "DPA clarifies processor vs. controller obligations and limits liability exposure."
             })
-        
+
         if any("pii" in trigger.lower() or "personal data" in trigger.lower() for trigger in risk_triggers):
             strategies.append({
                 "priority": "High",
@@ -153,7 +153,7 @@ def generate_mitigation_strategies(
                 "action": "Implement encryption at rest/in transit and role-based access controls for PII.",
                 "rationale": "Technical safeguards reduce breach risk and demonstrate compliance."
             })
-        
+
         if any("breach" in trigger.lower() for trigger in risk_triggers):
             strategies.append({
                 "priority": "Critical",
@@ -167,7 +167,7 @@ def generate_mitigation_strategies(
                 "action": "Obtain cyber liability insurance covering breach notification costs and regulatory fines.",
                 "rationale": "Transfers financial risk of data breaches and regulatory actions."
             })
-    
+
     # === PAYMENT RISK MITIGATIONS ===
     elif label == "Payment Risk":
         if any("liquidated damages" in trigger.lower() or "penalty" in trigger.lower() for trigger in risk_triggers):
@@ -183,7 +183,7 @@ def generate_mitigation_strategies(
                 "action": "Define clear performance metrics and SLAs to avoid ambiguity in damages triggers.",
                 "rationale": "Clarity reduces disputes and unexpected penalty assessments."
             })
-        
+
         if monetary_value >= 25000:
             strategies.append({
                 "priority": "High",
@@ -191,7 +191,7 @@ def generate_mitigation_strategies(
                 "action": f"Negotiate extended payment terms or milestone-based payments for ${monetary_value:,.0f}+.",
                 "rationale": "Reduces cash flow impact and aligns payments with value delivery."
             })
-        
+
         if any("late" in trigger.lower() or "interest" in trigger.lower() for trigger in risk_triggers):
             strategies.append({
                 "priority": "Medium",
@@ -205,7 +205,7 @@ def generate_mitigation_strategies(
                 "action": "Negotiate 10-15 day grace period before late fees apply.",
                 "rationale": "Provides buffer for administrative delays without penalty."
             })
-    
+
     # === IP RISK MITIGATIONS ===
     elif label == "IP Risk":
         if any("ownership" in trigger.lower() or "assignment" in trigger.lower() for trigger in risk_triggers):
@@ -221,7 +221,7 @@ def generate_mitigation_strategies(
                 "action": "Instead of assignment, grant limited license to counterparty for contract purposes only.",
                 "rationale": "Maintains IP ownership while allowing necessary use."
             })
-        
+
         if any("perpetual" in trigger.lower() or "irrevocable" in trigger.lower() for trigger in risk_triggers):
             strategies.append({
                 "priority": "High",
@@ -235,7 +235,7 @@ def generate_mitigation_strategies(
                 "action": "Include IP reversion clause if contract terminates or fees stop.",
                 "rationale": "Restores IP control if business relationship ends."
             })
-        
+
         if any("infringement" in trigger.lower() for trigger in risk_triggers):
             strategies.append({
                 "priority": "High",
@@ -249,7 +249,7 @@ def generate_mitigation_strategies(
                 "action": "Require warranty that counterparty's IP does not infringe third-party rights.",
                 "rationale": "Provides contractual recourse for IP infringement claims."
             })
-        
+
         if any("work for hire" in trigger.lower() for trigger in risk_triggers):
             strategies.append({
                 "priority": "Critical",
@@ -257,7 +257,7 @@ def generate_mitigation_strategies(
                 "action": "Clarify that only new work created specifically for this project is work-for-hire.",
                 "rationale": "Prevents loss of existing IP assets and reusable components."
             })
-    
+
     # === GENERAL HIGH-SEVERITY MITIGATIONS ===
     if severity == "High" and not strategies:
         strategies.append({
@@ -272,7 +272,7 @@ def generate_mitigation_strategies(
             "action": "Document business assumptions and risk acceptance in writing for future reference.",
             "rationale": "Creates audit trail for risk decisions and facilitates future negotiations."
         })
-    
+
     return strategies
 
 
@@ -291,7 +291,7 @@ def generate_executive_mitigation_summary(enriched_results: List[Dict[str, objec
     critical_actions = []
     high_priority_actions = []
     recommended_reviews = []
-    
+
     # Collect mitigation strategies from all high/medium risk clauses
     for item in enriched_results:
         severity = item.get("severity", "None")
@@ -300,17 +300,17 @@ def generate_executive_mitigation_summary(enriched_results: List[Dict[str, objec
             risk_triggers = item.get("high_risk_detection", {}).get("risk_triggers", [])
             monetary_value = item.get("extracted_metadata", {}).get("monetary_value", 0.0)
             durations = item.get("extracted_metadata", {}).get("durations", {})
-            
+
             strategies = generate_mitigation_strategies(
                 label, severity, risk_triggers, monetary_value, durations
             )
-            
+
             for strategy in strategies:
                 if strategy["priority"] == "Critical":
                     critical_actions.append(strategy)
                 elif strategy["priority"] == "High":
                     high_priority_actions.append(strategy)
-    
+
     # Deduplicate strategies by key
     def deduplicate_strategies(strategies_list):
         seen = set()
@@ -321,23 +321,23 @@ def generate_executive_mitigation_summary(enriched_results: List[Dict[str, objec
                 seen.add(key)
                 unique.append(s)
         return unique
-    
+
     critical_actions = deduplicate_strategies(critical_actions)
     high_priority_actions = deduplicate_strategies(high_priority_actions)
-    
+
     # Generate recommended reviews
     high_risk_count = sum(1 for item in enriched_results if item.get("severity") == "High")
     if high_risk_count > 0:
         recommended_reviews.append(f"Legal review required for {high_risk_count} high-severity clauses")
-    
+
     liability_risk_count = sum(1 for item in enriched_results if item.get("label") == "Liability Risk" and item.get("severity") in ["High", "Medium"])
     if liability_risk_count > 0:
         recommended_reviews.append(f"Risk management review for {liability_risk_count} liability clauses")
-    
+
     ip_risk_count = sum(1 for item in enriched_results if item.get("label") == "IP Risk" and item.get("severity") in ["High", "Medium"])
     if ip_risk_count > 0:
         recommended_reviews.append(f"IP counsel review for {ip_risk_count} intellectual property clauses")
-    
+
     # Estimate effort
     total_mitigations = len(critical_actions) + len(high_priority_actions)
     if total_mitigations == 0:
@@ -348,7 +348,7 @@ def generate_executive_mitigation_summary(enriched_results: List[Dict[str, objec
         effort_estimate = "High - 4-6 weeks for comprehensive risk mitigation"
     else:
         effort_estimate = "Very High - 6+ weeks; consider walking away if risks cannot be mitigated"
-    
+
     return {
         "critical_actions": critical_actions[:5],  # Top 5
         "high_priority_actions": high_priority_actions[:10],  # Top 10

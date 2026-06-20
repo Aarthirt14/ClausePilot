@@ -9,8 +9,6 @@ from typing import Dict, List
 
 import numpy as np
 
-from src.scoring.risk_score import attach_risk_scores
-
 
 def truncate_clause(text: str, limit: int = 120) -> str:
     """Return a short preview for collapsed clause cards."""
@@ -18,21 +16,6 @@ def truncate_clause(text: str, limit: int = 120) -> str:
     if len(cleaned) <= limit:
         return cleaned
     return f"{cleaned[:limit].rstrip()}..."
-
-
-def calculate_overall_risk_score(results: List[Dict[str, object]]) -> float:
-    """Compute normalized risk score using impact x likelihood."""
-    if not results:
-        return 0.0
-
-    _, breakdown = attach_risk_scores(results)
-    return float(breakdown.get("normalized_score", 0.0))
-
-
-def build_risk_score_breakdown(results: List[Dict[str, object]]) -> Dict[str, object]:
-    """Provide transparent formula inputs for contract risk score."""
-    _, breakdown = attach_risk_scores(results)
-    return breakdown
 
 
 def build_risk_summary(results: List[Dict[str, object]]) -> Dict[str, object]:

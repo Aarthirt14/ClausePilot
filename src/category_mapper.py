@@ -5,8 +5,6 @@ Maps fine-grained CUAD contract categories to high-level risk categories
 including the new IP Risk category.
 """
 
-from typing import Dict
-
 
 # Mapping from CUAD dataset categories to risk categories
 CUAD_TO_RISK_CATEGORY = {
@@ -16,7 +14,7 @@ CUAD_TO_RISK_CATEGORY = {
     "Covenant Not To Sue": "Liability Risk",
     "Insurance": "Liability Risk",
     "Warranty Duration": "Liability Risk",
-    
+
     # Termination Risk
     "Termination For Convenience": "Termination Risk",
     "Change Of Control": "Termination Risk",
@@ -24,10 +22,10 @@ CUAD_TO_RISK_CATEGORY = {
     "Notice Period To Terminate Renewal": "Termination Risk",
     "Expiration Date": "Termination Risk",
     "Renewal Term": "Termination Risk",
-    
+
     # Data Privacy Risk
     # (CUAD doesn't have explicit privacy categories, but we can infer from context)
-    
+
     # Payment Risk
     "Liquidated Damages": "Payment Risk",
     "Minimum Commitment": "Payment Risk",
@@ -35,7 +33,7 @@ CUAD_TO_RISK_CATEGORY = {
     "Revenue/Profit Sharing": "Payment Risk",
     "Volume Restriction": "Payment Risk",
     "Most Favored Nation": "Payment Risk",
-    
+
     # IP Risk (NEW)
     "Ip Ownership Assignment": "IP Risk",
     "Joint Ip Ownership": "IP Risk",
@@ -46,7 +44,7 @@ CUAD_TO_RISK_CATEGORY = {
     "Affiliate License-Licensor": "IP Risk",
     "Unlimited/All-You-Can-Eat-License": "IP Risk",
     "Source Code Escrow": "IP Risk",
-    
+
     # Neutral (administrative/low-risk)
     "Document Name": "Neutral",
     "Parties": "Neutral",
@@ -80,31 +78,31 @@ def map_cuad_to_risk_category(cuad_label: str) -> str:
     # Direct mapping
     if cuad_label in CUAD_TO_RISK_CATEGORY:
         return CUAD_TO_RISK_CATEGORY[cuad_label]
-    
+
     # Keyword-based fallback for unlisted categories
     label_lower = cuad_label.lower()
-    
+
     # Check for IP-related keywords
-    if any(kw in label_lower for kw in ['ip', 'intellectual property', 'patent', 'trademark', 
+    if any(kw in label_lower for kw in ['ip', 'intellectual property', 'patent', 'trademark',
                                           'copyright', 'license', 'ownership']):
         return "IP Risk"
-    
+
     # Check for liability keywords
     if any(kw in label_lower for kw in ['liability', 'indemnif', 'warranty', 'insurance']):
         return "Liability Risk"
-    
+
     # Check for termination keywords
     if any(kw in label_lower for kw in ['termination', 'expir', 'renewal', 'end']):
         return "Termination Risk"
-    
+
     # Check for payment keywords
     if any(kw in label_lower for kw in ['payment', 'fee', 'price', 'cost', 'revenue', 'damage']):
         return "Payment Risk"
-    
+
     # Check for data privacy keywords
     if any(kw in label_lower for kw in ['data', 'privacy', 'personal', 'pii', 'gdpr', 'ccpa']):
         return "Data Privacy Risk"
-    
+
     # Default to neutral
     return "Neutral"
 
@@ -116,7 +114,7 @@ def detect_ip_risk_from_text(text: str) -> bool:
     This is useful when the model wasn't explicitly trained on "IP Risk" as a category.
     """
     text_lower = text.lower()
-    
+
     ip_keywords = [
         'intellectual property', 'ip rights', 'patent', 'trademark', 'copyright',
         'trade secret', 'proprietary', 'source code', 'license grant',
@@ -124,10 +122,10 @@ def detect_ip_risk_from_text(text: str) -> bool:
         'derivative works', 'joint ownership', 'irrevocable', 'perpetual',
         'infringement', 'license', 'licensor', 'licensee'
     ]
-    
+
     # Count keyword matches
     matches = sum(1 for kw in ip_keywords if kw in text_lower)
-    
+
     # If 2+ IP keywords present, likely IP risk
     return matches >= 2
 
@@ -139,7 +137,7 @@ def detect_data_privacy_risk_from_text(text: str) -> bool:
     Since CUAD doesn't have explicit privacy categories, we detect from text.
     """
     text_lower = text.lower()
-    
+
     privacy_keywords = [
         'personal data', 'personally identifiable', 'pii',
         'gdpr', 'ccpa', 'data protection', 'data privacy',
@@ -148,9 +146,9 @@ def detect_data_privacy_risk_from_text(text: str) -> bool:
         'sensitive data', 'biometric', 'health information',
         'financial information', 'data security'
     ]
-    
+
     matches = sum(1 for kw in privacy_keywords if kw in text_lower)
-    
+
     return matches >= 2
 
 
@@ -180,12 +178,12 @@ def enhance_label_with_text_detection(
             mapped = map_cuad_to_risk_category(original_label)
             if mapped == "IP Risk":
                 return mapped, min(confidence + 0.10, 1.0), "CUAD label mapped to IP Risk"
-    
+
     # Check if data privacy risk detected in text
     if detect_data_privacy_risk_from_text(clause_text):
         if original_label == "Neutral" and confidence < 0.70:
             return "Data Privacy Risk", 0.75, "Text-based privacy keyword detection"
-    
+
     # No enhancement needed, use CUAD mapping
     mapped_label = map_cuad_to_risk_category(original_label)
     return mapped_label, confidence, "CUAD category mapping"

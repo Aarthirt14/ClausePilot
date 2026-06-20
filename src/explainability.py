@@ -1,4 +1,5 @@
-from typing import Dict, List
+import threading
+from typing import Dict, List, Tuple
 
 import numpy as np
 import shap
@@ -12,6 +13,44 @@ from src.scoring.advanced_risk_scoring import (
     detect_high_risk_clause,
     RISK_CATEGORIES
 )
+
+# ----------------------------------------------------------------------
+# Pipeline + explainer cache.
+#
+# Building a transformers `pipeline` re-reads the model/tokenizer from
+# disk, and building a `shap.Explainer` wraps that pipeline in its own
+# setup work. Neither depends on the clause text, so both are cached
+# per model_dir instead of being rebuilt on every /explain request.
+# ----------------------------------------------------------------------
+_EXPLAINER_CACHE: Dict[str, Tuple[object, object]] = {}
+_EXPLAINER_LOCK = threading.Lock()
+
+
+def _get_pipeline_and_explainer(model_dir: str) -> Tuple[object, object]:
+    cached = _EXPLAINER_CACHE.get(model_dir)
+    if cached is not None:
+        return cached
+
+    with _EXPLAINER_LOCK:
+        cached = _EXPLAINER_CACHE.get(model_dir)
+        if cached is not None:
+            return cached
+
+        clf = pipeline(
+            "text-classification",
+            model=model_dir,
+            tokenizer=model_dir,
+            top_k=None,
+        )
+        explainer = shap.Explainer(clf)
+        _EXPLAINER_CACHE[model_dir] = (clf, explainer)
+        return _EXPLAINER_CACHE[model_dir]
+
+
+def clear_explainer_cache() -> None:
+    """Drop all cached pipelines/explainers. Mainly useful for tests."""
+    with _EXPLAINER_LOCK:
+        _EXPLAINER_CACHE.clear()
 
 
 def _normalize_prediction_scores(raw_output) -> List[Dict[str, float]]:
@@ -55,12 +94,7 @@ def explain_clause_with_shap(
             "top_contributing_words": [],
         }
 
-    clf = pipeline(
-        "text-classification",
-        model=model_dir,
-        tokenizer=model_dir,
-        top_k=None,
-    )
+    clf, explainer = _get_pipeline_and_explainer(model_dir)
 
     prediction_scores = _normalize_prediction_scores(clf(clause_text))
     if not prediction_scores:
@@ -72,7 +106,6 @@ def explain_clause_with_shap(
     best = max(prediction_scores, key=lambda item: item["score"])
     predicted_label = best["label"]
 
-    explainer = shap.Explainer(clf)
     shap_values = explainer([clause_text])
 
     output_names = getattr(shap_values, "output_names", [])
@@ -178,35 +211,35 @@ def generate_risk_explanation(
     """
     # Get category description
     category_desc = get_category_description(label)
-    
+
     # Extract metadata
     monetary_value = extract_monetary_value(clause)
     durations = extract_duration(clause)
-    
+
     # Detect high-risk patterns
     high_risk_detection = detect_high_risk_clause(clause, label)
     risk_triggers = high_risk_detection.get("risk_triggers", [])
-    
+
     # Generate why_flagged explanation
     why_flagged_parts = []
-    
+
     if positive_words:
         why_flagged_parts.append(
             f"Key risk indicators detected: {', '.join(positive_words[:3])}"
         )
-    
+
     if risk_triggers:
         why_flagged_parts.append(
             f"High-risk patterns: {'; '.join(risk_triggers[:2])}"
         )
-    
+
     if monetary_value > 0:
         why_flagged_parts.append(
             f"Financial exposure identified: ${monetary_value:,.0f}"
         )
-    
+
     why_flagged = ". ".join(why_flagged_parts) if why_flagged_parts else "Pattern matching indicates potential risk."
-    
+
     # Generate potential_impact based on category
     potential_impacts = {
         "Liability Risk": [
@@ -236,34 +269,34 @@ def generate_risk_explanation(
         ],
         "Neutral": ["Minimal impact expected"]
     }
-    
+
     impact_list = potential_impacts.get(label, ["Potential business impact"])
-    
+
     # Add monetary impact if applicable
     if monetary_value >= 100000:
         impact_list.insert(0, f"Direct financial exposure: ${monetary_value:,.0f}")
-    
+
     # Combine risk factors
     risk_factors = []
-    
+
     if risk_triggers:
         risk_factors.extend(risk_triggers[:3])
-    
+
     # Add duration risks
     if durations.get("notice_period_days", 0) > 0:
         days = durations["notice_period_days"]
         if days < 30:
             risk_factors.append(f"Short notice period: only {days} days")
-    
+
     # Add severity flags from category keywords
     category_info = RISK_CATEGORIES.get(label, {})
     high_risk_kws = category_info.get("high_risk_keywords", [])
     clause_lower = clause.lower()
     matched_kws = [kw for kw in high_risk_kws if kw in clause_lower]
-    
+
     if matched_kws:
         risk_factors.append(f"Contains high-risk terms: {', '.join(matched_kws[:3])}")
-    
+
     return {
         "category_description": category_desc,
         "why_flagged": why_flagged,

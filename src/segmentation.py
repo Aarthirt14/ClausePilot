@@ -11,7 +11,11 @@ Returns only clauses longer than 20 characters after stripping whitespace.
 import re
 from typing import List
 
-from src.data_processing.cleaning import deduplicate_clauses
+from src.data_processing.cleaning import (
+    OCR_NOISE_PATTERN,
+    MULTI_DOT_PATTERN,
+    deduplicate_clauses,
+)
 
 # ── Regex patterns ──────────────────────────────────────────────────
 # Matches lines that start with a numbered heading like  1.  /  1.1  /  (a)
@@ -30,17 +34,22 @@ _SENTENCE_BOUNDARY = re.compile(
     r"(?<=[.!?])\s+(?=[A-Z])"
 )
 
-_OCR_NOISE_PATTERN = re.compile(r"\b(?:l\s*\/\s*I|I\s*\/\s*l|\|{2,}|_{2,})\b")
-_MULTI_DOT_PATTERN = re.compile(r"\.{3,}")
 _ARTIFACT_PREFIX_PATTERN = re.compile(r"^(?:\d+[\.)]|\(?[a-zA-Z]\)|[ivxlcdm]+\.)\s*$", re.IGNORECASE)
 
 
 def normalize_contract_text(text: str) -> str:
-    """Apply contract-specific text normalization and OCR cleanup."""
+    """Apply contract-specific text normalization and OCR cleanup.
+
+    Shares its noise-stripping rules with
+    `src.data_processing.cleaning.normalize_text` (the dedup-oriented
+    normalizer) — this version skips the final `.lower()` because
+    segmentation needs to preserve casing for sentence-boundary
+    detection.
+    """
     normalized = (text or "").replace("\r\n", "\n").replace("\r", "\n")
     normalized = normalized.replace("\x0c", " ")
-    normalized = _OCR_NOISE_PATTERN.sub(" ", normalized)
-    normalized = _MULTI_DOT_PATTERN.sub(".", normalized)
+    normalized = OCR_NOISE_PATTERN.sub(" ", normalized)
+    normalized = MULTI_DOT_PATTERN.sub(".", normalized)
     normalized = re.sub(r"[ \t]+", " ", normalized)
     normalized = "\n".join(line.strip() for line in normalized.splitlines())
     normalized = re.sub(r"\n{3,}", "\n\n", normalized)

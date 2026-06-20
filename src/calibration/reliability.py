@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import List
 
 import matplotlib.pyplot as plt
 import numpy as np
