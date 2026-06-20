@@ -3,6 +3,7 @@ src/pdf_extractor.py
 --------------------
 Utility for extracting clean raw text from contract PDF files.
 """
+import os
 import re
 import pdfplumber
 
@@ -28,7 +29,6 @@ def extract_text_from_pdf(pdf_path: str) -> str:
         FileNotFoundError: if the file does not exist.
         ValueError: if no text could be extracted.
     """
-    import os
     if not os.path.exists(pdf_path):
         raise FileNotFoundError(f"PDF not found: {pdf_path}")
 

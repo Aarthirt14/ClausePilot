@@ -5,10 +5,9 @@ import json
 import logging
 import os
 from datetime import datetime
-from typing import Dict, List, Tuple
+from typing import List, Tuple
 import hashlib
 
-import numpy as np
 import pandas as pd
 import torch
 from sklearn.model_selection import train_test_split

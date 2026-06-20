@@ -5,8 +5,11 @@ from typing import List, Tuple
 
 logger = logging.getLogger(__name__)
 
-_OCR_NOISE_PATTERN = re.compile(r"\b(?:l\s*\/\s*I|I\s*\/\s*l|\|{2,}|_{2,})\b")
-_MULTI_DOT_PATTERN = re.compile(r"\.{3,}")
+# Shared with src.segmentation.normalize_contract_text — kept public
+# (no leading underscore) so it can be imported there without reaching
+# into a "private" name.
+OCR_NOISE_PATTERN = re.compile(r"\b(?:l\s*\/\s*I|I\s*\/\s*l|\|{2,}|_{2,})\b")
+MULTI_DOT_PATTERN = re.compile(r"\.{3,}")
 
 
 def normalize_text(text: str) -> str:
@@ -15,8 +18,8 @@ def normalize_text(text: str) -> str:
         return ""
     cleaned = text.replace("\r\n", "\n").replace("\r", "\n")
     cleaned = cleaned.replace("\x0c", " ")
-    cleaned = _OCR_NOISE_PATTERN.sub(" ", cleaned)
-    cleaned = _MULTI_DOT_PATTERN.sub(".", cleaned)
+    cleaned = OCR_NOISE_PATTERN.sub(" ", cleaned)
+    cleaned = MULTI_DOT_PATTERN.sub(".", cleaned)
     cleaned = re.sub(r"[ \t]+", " ", cleaned)
     cleaned = "\n".join(line.strip() for line in cleaned.splitlines())
     cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)

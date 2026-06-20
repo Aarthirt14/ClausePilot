@@ -1,0 +1,22 @@
+services:
+  clausepilot:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_DEBUG=0
+      - MODEL_DIR=/app/models/bert_model
+      - UPLOAD_FOLDER=/app/uploads
+      - EVALUATION_DIR=/app/evaluation
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-me}
+    volumes:
+      # Model weights are large and trained/updated independently of the
+      # app code, so they're mounted rather than baked into the image.
+      - ./models:/app/models:ro
+      - ./uploads:/app/uploads
+      - ./evaluation:/app/evaluation
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:5000/healthz').status in (200,503) else 1)"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s

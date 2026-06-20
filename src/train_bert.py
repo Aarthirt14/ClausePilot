@@ -7,11 +7,10 @@ from torch import nn
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import f1_score, accuracy_score, classification_report
 from transformers import (
-    AutoTokenizer, 
-    AutoModelForSequenceClassification, 
-    Trainer, 
-    TrainingArguments, 
-    DataCollatorWithPadding
+    AutoTokenizer,
+    AutoModelForSequenceClassification,
+    Trainer,
+    TrainingArguments
 )
 from sklearn.utils.class_weight import compute_class_weight
 
@@ -56,14 +55,14 @@ def compute_metrics(pred):
 
 def train_transformer_model(base_model_name: str, model_output_dir: str):
     input_file = 'data/cuad_with_risk.csv'
-    
+
     if not os.path.exists(input_file):
         print(f"Error: {input_file} not found.")
         return
 
     print(f"Loading data from {input_file}...")
     df = pd.read_csv(input_file).dropna(subset=['clause_text', 'risk_label'])
-    
+
     # Subsetting for CPU training speed
     if not torch.cuda.is_available() and len(df) > 400:
         print("CPU detected. Subsampling up to 80 records per class for efficient training (~10 min)...")
@@ -72,53 +71,53 @@ def train_transformer_model(base_model_name: str, model_output_dir: str):
             subset = df[df['risk_label'] == label]
             samples.append(subset.sample(min(len(subset), 80), random_state=42))
         df = pd.concat(samples).reset_index(drop=True)
-    
+
     # Label Encoding
     unique_labels = sorted(df['risk_label'].unique())
     label2id = {label: i for i, label in enumerate(unique_labels)}
     id2label = {i: label for label, i in label2id.items()}
     df['label'] = df['risk_label'].map(label2id)
-    
+
     # Class Weights
     class_weights = compute_class_weight(
         class_weight='balanced',
         classes=np.unique(df['label']),
         y=df['label']
     ).astype(np.float32)
-    
+
     # Split
     train_texts, val_texts, train_labels, val_labels = train_test_split(
-        df['clause_text'].tolist(), 
-        df['label'].tolist(), 
-        test_size=0.2, 
-        random_state=42, 
+        df['clause_text'].tolist(),
+        df['label'].tolist(),
+        test_size=0.2,
+        random_state=42,
         stratify=df['label']
     )
-    
+
     print(f"Initializing Tokenizer ({base_model_name})...")
     tokenizer = AutoTokenizer.from_pretrained(base_model_name)
-    
+
     max_len = 128 if not torch.cuda.is_available() else 512
     print(f"Tokenizing (max_length={max_len})...")
     train_encodings = tokenizer(train_texts, truncation=True, padding=True, max_length=max_len)
     val_encodings = tokenizer(val_texts, truncation=True, padding=True, max_length=max_len)
-    
+
     train_dataset = ClauseDataset(train_encodings, train_labels)
     val_dataset = ClauseDataset(val_encodings, val_labels)
-    
+
     print("Loading Model...")
     model = AutoModelForSequenceClassification.from_pretrained(
-        base_model_name, 
+        base_model_name,
         num_labels=len(unique_labels),
         id2label=id2label,
         label2id=label2id
     )
-    
+
     # Determine batch size based on GPU availability
     device = "cuda" if torch.cuda.is_available() else "cpu"
     batch_size = 8 if device == "cuda" else 4
     print(f"Using device: {device}, Batch size: {batch_size}")
-    
+
     num_epochs = 2 if not torch.cuda.is_available() else 3
     training_args = TrainingArguments(
         output_dir='./results',
@@ -136,7 +135,7 @@ def train_transformer_model(base_model_name: str, model_output_dir: str):
         fp16=torch.cuda.is_available(),
         report_to="none"
     )
-    
+
     trainer = WeightedTrainer(
         class_weights=class_weights,
         model=model,
@@ -146,20 +145,20 @@ def train_transformer_model(base_model_name: str, model_output_dir: str):
         processing_class=tokenizer,
         compute_metrics=compute_metrics,
     )
-    
+
     print("Starting Training...")
     trainer.train()
-    
+
     print("Evaluating...")
     eval_results = trainer.evaluate()
     print(f"\nFinal Evaluation Results: {eval_results}")
-    
+
     # Final classification report
     preds = trainer.predict(val_dataset)
     y_pred = preds.predictions.argmax(-1)
     print("\n--- BERT Classification Report ---")
     print(classification_report(val_labels, y_pred, target_names=unique_labels))
-    
+
     print(f"Saving model to {model_output_dir}...")
     os.makedirs(model_output_dir, exist_ok=True)
     trainer.save_model(model_output_dir)

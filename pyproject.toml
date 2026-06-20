@@ -1,0 +1,13 @@
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+exclude = ["scripts", "data", "models", "evaluation", "uploads", "results"]
+
+[tool.ruff.lint]
+# Keep this focused on real correctness signals (unused imports, undefined
+# names, etc.) rather than full style enforcement -- this is a research/
+# portfolio codebase, not a library with a strict style guide.
+select = ["E", "F", "W"]
+ignore = [
+    "E501",  # line length is handled by line-length above, not worth failing CI over
+]
